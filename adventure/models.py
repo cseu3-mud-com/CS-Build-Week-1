@@ -51,6 +51,8 @@ class Player(models.Model):
         except Room.DoesNotExist:
             self.initialize()
             return self.room()
+    def __str__(self):
+        return f'{self.user.username}, room #{self.currentRoom}'
 
 @receiver(post_save, sender=User)
 def create_user_player(sender, instance, created, **kwargs):
@@ -61,8 +63,3 @@ def create_user_player(sender, instance, created, **kwargs):
 @receiver(post_save, sender=User)
 def save_user_player(sender, instance, **kwargs):
     instance.player.save()
-
-
-
-
-
