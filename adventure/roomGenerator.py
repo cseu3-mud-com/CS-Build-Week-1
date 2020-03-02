@@ -55,5 +55,3 @@ def generateRoomDescription():
     name3 = "Further ahead " + nm8[rnd8] + ". Its twisted trail leads " + nm9[rnd9] + " and soon you enter a " + nm10[rnd10] + " area. " + nm11[rnd11] + ". What happened in this place?"
     name4 = "You " + nm12[rnd12] + " onwards, deeper into the dungeon's " + nm13[rnd13] + ". You pass " + nm14[rnd14] + ", " + nm17[rnd17] + ". You eventually make it to what is likely the final room. " + nm15[rnd15] + " " + nm16[rnd16] + " door blocks your path. " + nm18[rnd18] + " all over it, somehow untouched by time and the elements. You step closer to inspect it and.. wait.. " + nm19[rnd19]
     return (title, f'{name}\n{name2}\n{name3}\n{name4}')
-
-print(generateRoomDescription())
