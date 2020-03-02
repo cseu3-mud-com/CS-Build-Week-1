@@ -42,53 +42,64 @@ def generateWorld(request):
             newRoom.save()
             allRooms.append(RoomSerializer(newRoom).data)
     
-    """
-     0,0 |  0,1 |  0,2 |  0,3 |  0,4 |  0,5 |  0,6 |  0,7 |  0,8 |  0,9 |  0,10 |  0,11 |  0,12 | 0,13
-     1,0 |  1,1 |  1,2 |  1,3 |  1,4 |  1,5 |  1,6 |  1,7 |  1,8 |  1,9 |  1,10 |  1,11 |  1,12 | 1,13
-     2,0 |  2,1 |  2,2 |  2,3 |  2,4 |  2,5 |  2,6 |  2,7 |  2,8 |  2,9 |  2,10 |  2,11 |  2,12 | 2,13
-     3,0 |  3,1 |  3,2 |  3,3 |  3,4 |  3,5 |  3,6 |  3,7 |  3,8 |  3,9 |  3,10 |  3,11 |  3,12 | 3,13
-     4,0 |  4,1 |  4,2 |  4,3 |  4,4 |  4,5 |  4,6 |  4,7 |  4,8 |  4,9 |  4,10 |  4,11 |  4,12 | 4,13
-     5,0 |  5,1 |  5,2 |  5,3 |  5,4 |  5,5 |  5,6 |  5,7 |  5,8 |  5,9 |  5,10 |  5,11 |  5,12 | 5,13
-     6,0 |  6,1 |  6,2 |  6,3 |  6,4 |  6,5 |  6,6 |  6,7 |  6,8 |  6,9 |  6,10 |  6,11 |  6,12 | 6,13
-     7,0 |  7,1 |  7,2 |  7,3 |  7,4 |  7,5 |  7,6 |  7,7 |  7,8 |  7,9 |  7,10 |  7,11 |  7,12 | 7,13
-     8,0 |  8,1 |  8,2 |  8,3 |  8,4 |  8,5 |  8,6 |  8,7 |  8,8 |  8,9 |  8,10 |  8,11 |  8,12 | 8,13
-     9,0 |  9,1 |  9,2 |  9,3 |  9,4 |  9,5 |  9,6 |  9,7 |  9,8 |  9,9 |  9,10 |  9,11 |  9,12 | 9,13
-    10,0 | 10,1 | 10,2 | 10,3 | 10,4 | 10,5 | 10,6 | 10,7 | 10,8 | 10,9 | 10,10 | 10,11 | 10,12 | 10,13
-    11,0 | 11,1 | 11,2 | 11,3 | 11,4 | 11,5 | 11,6 | 11,7 | 11,8 | 11,9 | 11,10 | 11,11 | 11,12 | 11,13
-    12,0 | 12,1 | 12,2 | 12,3 | 12,4 | 12,5 | 12,6 | 12,7 | 12,8 | 12,9 | 12,10 | 12,11 | 12,12 | 12,13
-    13,0 | 13,1 | 13,2 | 13,3 | 13,4 | 13,5 | 13,6 | 13,7 | 13,8 | 13,9 | 13,10 | 13,11 | 13,12 | 13,13
     
-    """
-    mapArea = 13
+    mapArea = 14 # 196 max grid
     mapSize = []
-    mapSpots = [0, 1]
-    totalRooms = len(allRooms)
     roomsInMap = 0
+    roomObjsInMap = [room for room in allRooms]
+    
+    def getRandomRoom():
+        nonlocal roomObjsInMap
+        if len(roomObjsInMap) > 0:
+            rRoomIndex = choice([n for n in range(0, len(roomObjsInMap))])
+            randomRoom = roomObjsInMap[rRoomIndex]
+            roomObjsInMap.pop(rRoomIndex)
+            print(f'random room chosen: {rRoomIndex} {randomRoom in roomObjsInMap}')
+            return randomRoom
+        return 1
+
+    mapSpots = [0, getRandomRoom()]
+
     while roomsInMap < maxRooms:
-        for row in range(0, mapArea): # 196
+        for row in range(0, mapArea):
+            # if we've not hit max map size for this row
             if len(mapSize) <= row:
+                # add new row
                 mapSize.append([])
             for column in range(0, mapArea):
-                newChoice = choice(mapSpots)
+                # check if we've hit max number of rooms
                 if roomsInMap == maxRooms: 
-                    newChoice = 0
-                if len(mapSize[row]) <= column:
-                    mapSize[row].append(newChoice)
+                    if len(mapSize[row]) <= column:
+                        mapSize[row].append(0)
                 else:
-                    if roomsInMap < maxRooms:
-                        mapSize[row][column] = 1
+                    # choose between 0 or a Room
+                    newChoice = choice(mapSpots)
+                    # if we've not hit max map size for this column
+                    if len(mapSize[row]) <= column:
+                        # add new column based on choice
+                        mapSize[row].append(newChoice)
+                        # if the choice was a Room
+                        if newChoice != 0:
+                            # get new Room to choose from 
+                            mapSpots = [0, getRandomRoom()]
+                    # we've already hit max map size for this column
+                    else:
+                        # so if the rooms in map are less than max rooms
+                        if roomsInMap < maxRooms:
+                            # add new room
+                            newChoice = getRandomRoom()
+                            mapSize[row][column] = newChoice
 
-                roomsInMap += newChoice
-
-
-
+                    # if final choice was a Room, add 1 to rooms in map
+                    if newChoice != 0:
+                        roomsInMap += 1
 
     """
     totalRooms -= 1
     allRooms[:totalRooms]
     """
 
-    return JsonResponse({ "mapSize": mapSize, "rooms": allRooms })
+    return JsonResponse({ "mapSize": mapSize }) # , "rooms": allRooms
 
 # @csrf_exempt
 @api_view(["POST"])
