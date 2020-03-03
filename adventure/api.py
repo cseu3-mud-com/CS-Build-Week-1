@@ -28,7 +28,7 @@ def initialize(request):
     players = room.playerNames(player_id)
     return JsonResponse({'uuid': uuid, 'name':player.user.username, 'title':room.title, 'description':room.description, 'players':players}, safe=True)
 
-mapSize = 16 # needs to be adjusted based on max rooms
+mapSize = 15 # needs to be adjusted based on max rooms
 maxRooms = 100
 
 @api_view(["GET"])
