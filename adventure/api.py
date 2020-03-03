@@ -1,16 +1,15 @@
-from random import randint, choice, uniform
-from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
-# from pusher import Pusher
-from django.http import JsonResponse
-from decouple import config
-from django.contrib.auth.models import User
-from .models import *
-from rest_framework.decorators import api_view,permission_classes
 import json
+from decouple import config
+from django.http import JsonResponse
+from django.contrib.auth.models import User
+from adventure.models import Player, Room
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
 from rest_framework import permissions
-from adventure.models import Player, Room
+from random import randint, choice
+# from pusher import Pusher
+from .models import *
 from .roomGenerator import generateRoomDescription
 from .serializer import RoomSerializer
 
@@ -19,9 +18,8 @@ from .serializer import RoomSerializer
 
 @api_view(["GET"])
 @csrf_exempt
-
+@permission_classes([IsAuthenticated])
 def initialize(request):
-    permission_classes = (IsAuthenticated)
     user = request.user
     player = user.player
     player_id = player.id
@@ -32,8 +30,8 @@ def initialize(request):
 
 @api_view(["GET"])
 @csrf_exempt
+@permission_classes([IsAuthenticated])
 def generateWorld(request):
-    permission_classes = (IsAuthenticated)
     maxRooms = 100
     # delete all room data
     Room.objects.all().delete()
@@ -159,14 +157,14 @@ def generateWorld(request):
 
 @api_view(["GET"])
 @csrf_exempt
+@permission_classes([IsAuthenticated])
 def getRooms(request):
-    permission_classes = (IsAuthenticated)
     return JsonResponse({ "rooms": RoomSerializer(Room.objects.all(), many=True).data})
 
 @api_view(["POST"])
 @csrf_exempt
+@permission_classes([IsAuthenticated])
 def move(request):
-    permission_classes = (IsAuthenticated)
     dirs={"n": "north", "s": "south", "e": "east", "w": "west"}
     reverse_dirs = {"n": "south", "s": "north", "e": "west", "w": "east"}
     player = request.user.player
@@ -203,6 +201,7 @@ def move(request):
 
 @api_view(["POST"])
 @csrf_exempt
+@permission_classes([IsAuthenticated])
 def say(request):
     # IMPLEMENT
     return JsonResponse({'error':"Not yet implemented"}, safe=True, status=500)
