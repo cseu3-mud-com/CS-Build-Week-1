@@ -28,20 +28,19 @@ def initialize(request):
     players = room.playerNames(player_id)
     return JsonResponse({'uuid': uuid, 'name':player.user.username, 'title':room.title, 'description':room.description, 'players':players}, safe=True)
 
+mapSize = 16 # needs to be adjusted based on max rooms
+maxRooms = 100
+
 @api_view(["GET"])
 @csrf_exempt
 @permission_classes([IsAuthenticated])
 def generateWorld(request):
-    maxRooms = 100
     # delete all room data
     Room.objects.all().delete()
     # store all rooms
-    mapSize = 16 # needs to be adjusted based on max rooms
     gameMap = []
     # gameMapLog = []
     roomsAddedToMap = 0
-
-    allRooms = []
 
     for y in range(0, mapSize):
         # store previously passed room
@@ -60,8 +59,7 @@ def generateWorld(request):
 
                 if isRoom == 1:
                     roomsAddedToMap += 1
-                    newRoom = addRoom()
-                    
+                    newRoom = addRoom(x, y)
                     # generate horizontal connections
                     if prevRoomLeft is not None:
                         # find room to the west / left
@@ -104,8 +102,6 @@ def generateWorld(request):
                     # update isRoom from 1 to the new room object 
                     isRoom = newRoom
 
-                # store all rooms
-                allRooms.append(newRoom)
                 # update the game map
                 gameMap[y].append(isRoom)
                 # if isRoom == 0:
@@ -119,14 +115,14 @@ def generateWorld(request):
             if gameMap[y][x] is not 0:
                 gameMap[y][x] = RoomSerializer(gameMap[y][x]).data
 
-    output = { "gameMap": gameMap } # "gameMapLog": gameMapLog 
+    output = { "gameMap": gameMap, "mapSize": mapSize } # "gameMapLog": gameMapLog 
     return JsonResponse(output)
 
-def addRoom():
+def addRoom(x, y):
     # generate random title and description
     (title, description) = generateRoomDescription()
     # create room in database
-    newRoom = Room(title=title, description=description)
+    newRoom = Room(title=title, description=description, x=x, y=y)
     # store it
     newRoom.save()
     # return it
@@ -136,7 +132,7 @@ def addRoom():
 @csrf_exempt
 @permission_classes([IsAuthenticated])
 def getRooms(request):
-    return JsonResponse({ "rooms": RoomSerializer(Room.objects.all(), many=True).data})
+    return JsonResponse({ "rooms": RoomSerializer(Room.objects.all(), many=True).data, "mapSize": mapSize })
 
 @api_view(["POST"])
 @csrf_exempt
