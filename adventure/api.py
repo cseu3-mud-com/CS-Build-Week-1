@@ -6,9 +6,10 @@ from django.http import JsonResponse
 from decouple import config
 from django.contrib.auth.models import User
 from .models import *
-from rest_framework.decorators import api_view
+from rest_framework.decorators import api_view,permission_classes
 import json
-
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework import permissions
 from adventure.models import Player, Room
 from .roomGenerator import generateRoomDescription
 from .serializer import RoomSerializer
@@ -16,10 +17,11 @@ from .serializer import RoomSerializer
 # instantiate pusher
 # pusher = Pusher(app_id=config('PUSHER_APP_ID'), key=config('PUSHER_KEY'), secret=config('PUSHER_SECRET'), cluster=config('PUSHER_CLUSTER'))
 
-@csrf_exempt
 @api_view(["GET"])
-# TODO: AUTHENTICATION
+@csrf_exempt
+
 def initialize(request):
+    permission_classes = (IsAuthenticated)
     user = request.user
     player = user.player
     player_id = player.id
@@ -28,9 +30,10 @@ def initialize(request):
     players = room.playerNames(player_id)
     return JsonResponse({'uuid': uuid, 'name':player.user.username, 'title':room.title, 'description':room.description, 'players':players}, safe=True)
 
-@csrf_exempt
 @api_view(["GET"])
+@csrf_exempt
 def generateWorld(request):
+    permission_classes = (IsAuthenticated)
     maxRooms = 100
     # delete all room data
     Room.objects.all().delete()
@@ -143,7 +146,7 @@ def generateWorld(request):
                         prevRoomAbove.connectRooms(room, 's')
 
     # serialize all rooms before return
-    allRooms = [RoomSerializer(room).data for room in Room.objects.all()]
+    allRooms = RoomSerializer(Room.objects.all(), many=True).data
     
     # serialize all rooms in map
     for row in range(0, totalRows):
@@ -154,14 +157,16 @@ def generateWorld(request):
 
     return JsonResponse({ "worldMap": worldMap })
 
-@csrf_exempt
 @api_view(["GET"])
+@csrf_exempt
 def getRooms(request):
-    return JsonResponse({ "rooms":[RoomSerializer(room).data for room in Room.objects.all()]})
+    permission_classes = (IsAuthenticated)
+    return JsonResponse({ "rooms": RoomSerializer(Room.objects.all(), many=True).data})
 
-# @csrf_exempt
 @api_view(["POST"])
+@csrf_exempt
 def move(request):
+    permission_classes = (IsAuthenticated)
     dirs={"n": "north", "s": "south", "e": "east", "w": "west"}
     reverse_dirs = {"n": "south", "s": "north", "e": "west", "w": "east"}
     player = request.user.player
@@ -196,8 +201,8 @@ def move(request):
         return JsonResponse({'name':player.user.username, 'title':room.title, 'description':room.description, 'players':players, 'error_msg':"You cannot move that way."}, safe=True)
 
 
-@csrf_exempt
 @api_view(["POST"])
+@csrf_exempt
 def say(request):
     # IMPLEMENT
     return JsonResponse({'error':"Not yet implemented"}, safe=True, status=500)
