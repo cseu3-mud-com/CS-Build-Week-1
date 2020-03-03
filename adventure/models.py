@@ -6,8 +6,8 @@ from rest_framework.authtoken.models import Token
 import uuid
 
 class Room(models.Model):
-    title = models.CharField(max_length=50, default="DEFAULT TITLE")
-    description = models.CharField(max_length=500, default="DEFAULT DESCRIPTION")
+    title = models.CharField(max_length=150)
+    description = models.TextField()
     n_to = models.IntegerField(default=0)
     s_to = models.IntegerField(default=0)
     e_to = models.IntegerField(default=0)
@@ -50,6 +50,8 @@ class Player(models.Model):
         try:
             return Room.objects.get(id=self.currentRoom)
         except Room.DoesNotExist:
+            self.currentRoom = 0
+            self.save()
             self.initialize()
             return self.room()
     def __str__(self):

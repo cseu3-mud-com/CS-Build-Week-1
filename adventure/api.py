@@ -1,24 +1,24 @@
-from random import randint, choice, uniform
-from django.shortcuts import render
-from django.views.decorators.csrf import csrf_exempt
-# from pusher import Pusher
-from django.http import JsonResponse
-from decouple import config
-from django.contrib.auth.models import User
-from .models import *
-from rest_framework.decorators import api_view
 import json
-
+from decouple import config
+from django.http import JsonResponse
+from django.contrib.auth.models import User
 from adventure.models import Player, Room
+from django.views.decorators.csrf import csrf_exempt
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly
+from rest_framework import permissions
+from random import randint, choice
+# from pusher import Pusher
+from .models import *
 from .roomGenerator import generateRoomDescription
 from .serializer import RoomSerializer
 
 # instantiate pusher
 # pusher = Pusher(app_id=config('PUSHER_APP_ID'), key=config('PUSHER_KEY'), secret=config('PUSHER_SECRET'), cluster=config('PUSHER_CLUSTER'))
 
-@csrf_exempt
 @api_view(["GET"])
-# TODO: AUTHENTICATION
+@csrf_exempt
+@permission_classes([IsAuthenticated])
 def initialize(request):
     user = request.user
     player = user.player
@@ -28,8 +28,9 @@ def initialize(request):
     players = room.playerNames(player_id)
     return JsonResponse({'uuid': uuid, 'name':player.user.username, 'title':room.title, 'description':room.description, 'players':players}, safe=True)
 
-@csrf_exempt
 @api_view(["GET"])
+@csrf_exempt
+@permission_classes([IsAuthenticated])
 def generateWorld(request):
     maxRooms = 100
     # delete all room data
@@ -143,7 +144,7 @@ def generateWorld(request):
                         prevRoomAbove.connectRooms(room, 's')
 
     # serialize all rooms before return
-    allRooms = [RoomSerializer(room).data for room in Room.objects.all()]
+    allRooms = RoomSerializer(Room.objects.all(), many=True).data
     
     # serialize all rooms in map
     for row in range(0, totalRows):
@@ -154,13 +155,15 @@ def generateWorld(request):
 
     return JsonResponse({ "worldMap": worldMap })
 
-@csrf_exempt
 @api_view(["GET"])
+@csrf_exempt
+@permission_classes([IsAuthenticated])
 def getRooms(request):
-    return JsonResponse({ "rooms":[RoomSerializer(room).data for room in Room.objects.all()]})
+    return JsonResponse({ "rooms": RoomSerializer(Room.objects.all(), many=True).data})
 
-# @csrf_exempt
 @api_view(["POST"])
+@csrf_exempt
+@permission_classes([IsAuthenticated])
 def move(request):
     dirs={"n": "north", "s": "south", "e": "east", "w": "west"}
     reverse_dirs = {"n": "south", "s": "north", "e": "west", "w": "east"}
@@ -196,8 +199,9 @@ def move(request):
         return JsonResponse({'name':player.user.username, 'title':room.title, 'description':room.description, 'players':players, 'error_msg':"You cannot move that way."}, safe=True)
 
 
-@csrf_exempt
 @api_view(["POST"])
+@csrf_exempt
+@permission_classes([IsAuthenticated])
 def say(request):
     # IMPLEMENT
     return JsonResponse({'error':"Not yet implemented"}, safe=True, status=500)
