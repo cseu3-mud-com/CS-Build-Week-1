@@ -26,7 +26,7 @@ def initialize(request):
     uuid = player.uuid
     room = player.room()
     players = room.playerNames(player_id)
-    return JsonResponse({'uuid': uuid, 'name':player.user.username, 'title':room.title, 'description':room.description, 'players':players}, safe=True)
+    return JsonResponse({'uuid': uuid, 'name':player.user.username, 'room': RoomSerializer(room).data, 'players': players }, safe=True)
 
 mapSize = 15 # needs to be adjusted based on max rooms
 maxRooms = 100
