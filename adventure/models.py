@@ -8,6 +8,8 @@ import uuid
 class Room(models.Model):
     title = models.CharField(max_length=150)
     description = models.TextField()
+    x = models.IntegerField(default=None)
+    y = models.IntegerField(default=None)
     n_to = models.IntegerField(default=0)
     s_to = models.IntegerField(default=0)
     e_to = models.IntegerField(default=0)

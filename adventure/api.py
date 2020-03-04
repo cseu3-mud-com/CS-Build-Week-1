@@ -26,140 +26,113 @@ def initialize(request):
     uuid = player.uuid
     room = player.room()
     players = room.playerNames(player_id)
-    return JsonResponse({'uuid': uuid, 'name':player.user.username, 'title':room.title, 'description':room.description, 'players':players}, safe=True)
+    return JsonResponse({'uuid': uuid, 'name':player.user.username, 'room': RoomSerializer(room).data, 'players': players }, safe=True)
+
+mapSize = 15 # needs to be adjusted based on max rooms
+maxRooms = 100
 
 @api_view(["GET"])
 @csrf_exempt
 @permission_classes([IsAuthenticated])
 def generateWorld(request):
-    maxRooms = 100
     # delete all room data
     Room.objects.all().delete()
     # store all rooms
-    allRooms = []
-    if len(allRooms) < maxRooms:
-        # generate x rooms
-        for _ in range(0, maxRooms):
-            # generate rooms title and description
-            (title, description) = generateRoomDescription()
-            # create room in database
-            newRoom = Room(title=title, description=description)
-            newRoom.save()
-            # store it
-            allRooms.append(newRoom)
-    
-    # set map square area of 196 squares in map/grid
-    mapArea = 14 
-    # store map
-    worldMap = [] 
-    # amount rooms used in map
-    roomsInMap = 0 
-    # copy rooms to prevent repeated rooms added to map
-    roomObjsInMap = [room for room in allRooms]
-    
-    # this function returns a random room and guarantees an unique room every time
-    def getRandomRoom():
-        nonlocal roomObjsInMap
-        if len(roomObjsInMap) > 0:
-            rRoomIndex = choice([n for n in range(0, len(roomObjsInMap))])
-            randomRoom = roomObjsInMap[rRoomIndex]
-            roomObjsInMap.pop(rRoomIndex)
-            return randomRoom
-        return 1
+    gameMap = []
+    # gameMapLog = []
+    roomsAddedToMap = 0
 
-    # there are two possibilities: 0 rooms or 1 room in each square of the map grid
-    mapSpots = [0, getRandomRoom()]
-
-    # generate map
-    while roomsInMap < maxRooms:
-        for row in range(0, mapArea):
-            # if we've not hit max map size for this row
-            if len(worldMap) <= row:
-                # add new row
-                worldMap.append([])
-            for column in range(0, mapArea):
-                # check if we've hit max number of rooms
-                if roomsInMap == maxRooms: 
-                    if len(worldMap[row]) <= column:
-                        worldMap[row].append(0)
-                else:
-                    # choose between 0 or a Room
-                    newChoice = choice(mapSpots)
-                    # if we've not hit max map size for this column
-                    if len(worldMap[row]) <= column:
-                        # add new column based on choice
-                        worldMap[row].append(newChoice)
-                        # if the choice was a Room
-                        if newChoice != 0:
-                            # get new Room to choose from 
-                            mapSpots = [0, getRandomRoom()]
-                    # we've already hit max map size for this column
-                    else:
-                        # so if the rooms in map are less than max rooms
-                        if roomsInMap < maxRooms:
-                            # add new room
-                            newChoice = getRandomRoom()
-                            worldMap[row][column] = newChoice
-
-                    # if final choice was a Room, add 1 to rooms in map
-                    if newChoice != 0:
-                        roomsInMap += 1
-
-    # connect all rooms horizontally/vertically
-    totalRows = len(worldMap)
-    for row in range(0, totalRows):
+    for y in range(0, mapSize):
         # store previously passed room
         prevRoomLeft = None
-        for column in range(0, len(worldMap[row])):
-            room = worldMap[row][column]
-            # if its actually a room object
-            if room != 0 and room != 1:
-                if prevRoomLeft:
-                    # find room to the west / left
-                    # find room to the east / right
-                    room.connectRooms(prevRoomLeft, 'w')
-                    prevRoomLeft.connectRooms(room, 'e')
-                # set this room to be the previous room for the next loops
-                prevRoomLeft = room
-                
-                # if we're on the 2nd row or below
-                if row > 0:
-                    prevRoomAbove = None
-                    # go up and find a room
-                    tmpRow = row
-                    while tmpRow > 0:
-                        # go one row above
-                        tmpRow -= 1
-                        # on the same column
-                        roomAbove = worldMap[tmpRow][column]
-                        # check if there is a room there
-                        if roomAbove != 0 and roomAbove != 1:
-                            # set the new room above
-                            prevRoomAbove = roomAbove
-                            break
+        prevRoomLeftX = None
+        if len(gameMap) <= y:
+            gameMap.append([])
+            # gameMapLog.append([])
+        for x in range(0, mapSize):
+            if roomsAddedToMap >= maxRooms:
+                gameMap[y].append(0)
+                # gameMapLog[y].append('____')
+            else:
+                newRoom = None
+                isRoom = randint(0, 1)
+
+                if isRoom == 1:
+                    roomsAddedToMap += 1
+                    newRoom = addRoom(x, y)
+                    # generate horizontal connections
+                    if prevRoomLeft is not None:
+                        # find room to the west / left
+                        newRoom.connectRooms(prevRoomLeft, 'w')
+                        # find room to the east / right
+                        prevRoomLeft.connectRooms(newRoom, 'e')
+                        # update game map with new connection
+                        gameMap[y][prevRoomLeftX] = prevRoomLeft
+                    # set this room to be the previous room for the next loops
+                    prevRoomLeft = newRoom
+                    prevRoomLeftX = x
                     
-                    # find room to the north / top
-                    if prevRoomAbove:
-                        room.connectRooms(prevRoomAbove, 'n')
-                        prevRoomAbove.connectRooms(room, 's')
+                    
+                    # after the first row is done
+                    # generate vertical connections
+                    if y > 0:
+                        # hold on to the room above
+                        prevRoomAbove = None
+                        prevRoomAboveY = None
+                        tmpY = y
+                        # keep going up until we find a room
+                        while tmpY > 0 and prevRoomAbove is None:
+                            # go one row above
+                            tmpY -= 1
+                            # on the same column, check if there is a room there
+                            if gameMap[tmpY][x] is not 0:
+                                # update the new room above
+                                prevRoomAbove = gameMap[tmpY][x]
+                                prevRoomAboveY = tmpY
+                        
+                        # if we've found a possible connection
+                        if prevRoomAbove is not None:
+                            # find room to the north / up
+                            newRoom.connectRooms(prevRoomAbove, 'n')
+                            # find room to the south / down
+                            prevRoomAbove.connectRooms(newRoom, 's')
+                            # update game map with new connection
+                            gameMap[prevRoomAboveY][x] = prevRoomAbove
+
+                    # update isRoom from 1 to the new room object 
+                    isRoom = newRoom
+
+                # update the game map
+                gameMap[y].append(isRoom)
+                # if isRoom == 0:
+                #     gameMapLog[y].append('____')
+                # else:
+                #     gameMapLog[y].append(isRoom.id)
 
     # serialize all rooms before return
-    allRooms = RoomSerializer(Room.objects.all(), many=True).data
-    
-    # serialize all rooms in map
-    for row in range(0, totalRows):
-        for column in range(0, len(worldMap[row])):
-            room = worldMap[row][column]
-            if room != 0 and room != 1:
-                worldMap[row][column] = RoomSerializer(room).data
+    for y in range(0, mapSize):
+        for x in range(0, mapSize):
+            if gameMap[y][x] is not 0:
+                gameMap[y][x] = RoomSerializer(gameMap[y][x]).data
 
-    return JsonResponse({ "worldMap": worldMap })
+    output = { "gameMap": gameMap, "mapSize": mapSize } # "gameMapLog": gameMapLog 
+    return JsonResponse(output)
+
+def addRoom(x, y):
+    # generate random title and description
+    (title, description) = generateRoomDescription()
+    # create room in database
+    newRoom = Room(title=title, description=description, x=x, y=y)
+    # store it
+    newRoom.save()
+    # return it
+    return newRoom
 
 @api_view(["GET"])
 @csrf_exempt
 @permission_classes([IsAuthenticated])
 def getRooms(request):
-    return JsonResponse({ "rooms": RoomSerializer(Room.objects.all(), many=True).data})
+    return JsonResponse({ "rooms": RoomSerializer(Room.objects.all(), many=True).data, "mapSize": mapSize })
 
 @api_view(["POST"])
 @csrf_exempt
