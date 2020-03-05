@@ -11,7 +11,7 @@ from random import randint, choice
 from pusher import Pusher
 from .models import *
 from .roomGenerator import generateRoomDescription
-from .serializer import RoomSerializer
+from .serializer import RoomSerializer, CharacterSerializer
 
 # instantiate pusher
 pusher = Pusher(app_id=config('PUSHER_APP_ID'), key=config('PUSHER_KEY'), secret=config('PUSHER_SECRET'), cluster=config('PUSHER_CLUSTER'))
@@ -213,3 +213,30 @@ def say(request):
         return JsonResponse({'error':str(e)}, safe=True, status=500)
 
 
+@api_view(["GET"])
+@csrf_exempt
+@permission_classes([IsAuthenticated])
+def get_character(request):
+    try:
+        character = request.user.player.character
+        return JsonResponse({
+          'character': CharacterSerializer(character).data,
+        }, safe=True)
+    except Exception as e:
+        return JsonResponse({'error':str(e)}, safe=True, status=500)
+
+@api_view(["POST"])
+@csrf_exempt
+@permission_classes([IsAuthenticated])
+def update_character(request):
+    try:
+        print('HELLO')
+        character = request.user.player.character
+        data = json.loads(request.body)
+        character.data = data['data']
+        character.save()
+        return JsonResponse({
+          'character': CharacterSerializer(character).data,
+        }, safe=True, status=200)
+    except Exception as e:
+        return JsonResponse({'error':str(e)}, safe=True, status=500)
