@@ -7,4 +7,5 @@ urlpatterns = [
     url('move', api.move),
     url('say', api.say),
     url('rooms', api.getRooms),
+    url('character', api.get_character),
 ]
