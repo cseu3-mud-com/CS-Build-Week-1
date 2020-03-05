@@ -9,4 +9,4 @@ class RoomSerializer(serializers.ModelSerializer):
 class CharacterSerializer(serializers.ModelSerializer):
     class Meta:
         model = Character
-        fields = ['data']
+        fields = ['id','data']
