@@ -187,6 +187,22 @@ def move(request):
 @permission_classes([IsAuthenticated])
 def say(request):
     # IMPLEMENT
-    return JsonResponse({'error':"Not yet implemented"}, safe=True, status=500)
+    try:
+        player = request.user.player
+        room = player.room()
+        currentPlayerUUIDs = room.playerUUIDs(player.id)
+        data = json.loads(request.body)
+        message = data['message']
+        print(message)
+        if (len(currentPlayerUUIDs)):
+            for p_uuid in currentPlayerUUIDs:
+                pusher.trigger(f'p-channel-{p_uuid}', u'broadcast', {'message':f'{player.user.username} said: {message}'})
+        return JsonResponse({
+          'name': player.user.username,
+          'room': RoomSerializer(room).data,
+          'error_msg': ""
+        }, safe=True)
+    except Exception as e:
+        return JsonResponse({'error':str(e)}, safe=True, status=500)
 
 
