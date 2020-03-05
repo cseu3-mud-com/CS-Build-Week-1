@@ -162,10 +162,17 @@ def move(request):
         players = nextRoom.playerNames(player_id)
         currentPlayerUUIDs = room.playerUUIDs(player_id)
         nextPlayerUUIDs = nextRoom.playerUUIDs(player_id)
+        
+        # after current player leaves a room
+        # warn all other players in previous room that this player left
         for p_uuid in currentPlayerUUIDs:
             pusher.trigger(f'p-channel-{p_uuid}', u'broadcast', {'message':f'{player.user.username} has walked {dirs[direction]}.'})
+        # warn all players in the next room that this player entered
         for p_uuid in nextPlayerUUIDs:
             pusher.trigger(f'p-channel-{p_uuid}', u'broadcast', {'message':f'{player.user.username} has entered from the {reverse_dirs[direction]}.'})
+
+        pusher.trigger(f'p-channel-{player_uuid}', u'broadcast', {'message':f'You entered a new room from the {reverse_dirs[direction]}.\n{"There is someone else in here" if len(players) > 0 else "No one else is in here"}!'})
+
         return JsonResponse({
           'name': player.user.username,
           'room': RoomSerializer(nextRoom).data,
