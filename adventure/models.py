@@ -4,6 +4,9 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
 import uuid
+from util.character import character
+import json
+
 
 class Room(models.Model):
     title = models.CharField(max_length=150)
@@ -59,6 +62,13 @@ class Player(models.Model):
     def __str__(self):
         return f'{self.user.username}, room #{self.currentRoom}'
 
+class Character(models.Model):
+    player = models.OneToOneField(Player, on_delete=models.CASCADE)
+    data = models.TextField(default=json.dumps(character))
+
+    def __str__(self):
+        return self.player.user.username
+
 @receiver(post_save, sender=User)
 def create_user_player(sender, instance, created, **kwargs):
     if created:
@@ -68,3 +78,14 @@ def create_user_player(sender, instance, created, **kwargs):
 @receiver(post_save, sender=User)
 def save_user_player(sender, instance, **kwargs):
     instance.player.save()
+
+
+@receiver(post_save, sender=Player)
+def create_player_character(sender, instance, created, **kwargs):
+    if created:
+        Character.objects.create(player=instance)
+
+@receiver(post_save, sender=Player)
+def save_player_character(sender, instance, **kwargs):
+    if hasattr(instance, 'character'):
+        instance.character.save()
